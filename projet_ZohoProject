@@ -1,0 +1,119 @@
+void automation.creat_project(String dealID)
+{
+dealInfo = zoho.crm.getRecordById("Deals",dealID);
+info dealInfo;
+list_quote = list();
+accountName = dealInfo.get("Account_Name").get("name");
+accountID = dealInfo.get("Account_Name").get("id");
+contact = dealInfo.getJSON("Contact_Name");
+if(!contact.isNull())
+{
+	contactID = dealInfo.getJSON("Contact_Name").getJSON("id");
+	contact_name = dealInfo.getJSON("Contact_Name").getJSON("name");
+	contact_det = zoho.crm.getRecordById("Contacts",contactID);
+	phone = contact_det.getJSON("Mobile");
+}
+deal_amount = dealInfo.get("Amount").toDecimal();
+// exemple : 10000.00
+// Récupération du % de profit brut
+profit_percentage =20;
+// exemple : 20
+profit_percentage = profit_percentage / 100;
+// Calcul du coût cible basé uniquement sur le montant du deal
+cost_budget = deal_amount - deal_amount * profit_percentage;
+cost_budget = cost_budget.round(2);
+info cost_budget;
+nameP = dealInfo.get("Deal_Name");
+// trouver les variables customfields
+PortalID = "NOM_PORTAIL";
+GetProjectDetails = invokeurl
+[
+	url :"https://projectsapi.zoho.com/restapi/portal/" + PortalID + "/projects/customfields/"
+	type :GET
+	connection:"crm_project"
+];
+info GetProjectDetails;
+
+params = Map();
+params.put("name",nameP);
+params.put("description",dealInfo.get("Description"));
+params.put("UDF_LONG2",dealInfo.get("Num_ro_d_affaire"));
+params.put("UDF_CHAR7",dealInfo.get("Num_ro_de_r_f_rence_de_l_estimateur"));
+params.put("UDF_CHAR6",dealInfo.get("Adresse_des_travaux"));
+params.put("budget_type",1);
+params.put("hourly_budget",dealInfo.get("Nombre_d_heures"));
+params.put("budget_value",cost_budget);
+params.put("revenue_budget",dealInfo.get("Amount").toDecimal());
+params.put("UDF_CHAR1",dealInfo.get("Fiche_tech"));
+params.put("UDF_CHAR2",dealInfo.get("Couleur"));
+deal_amount = dealInfo.get("Amount").toDecimal();
+params.put("UDF_TEXT1",accountID);
+// exemple : 10000.00
+// Récupération du % de profit brut
+profit_percentage = dealInfo.get("Pourcentage_profit_brut_vis_proposition_de_Oli").toDecimal();
+// exemple : 20
+
+
+
+
+//params.put("budget_type",2);
+projectTemplate = "Modèle de projet";
+param = Map();
+param.put("status","template");
+zohoProjectsTemplate = invokeurl
+[
+	url :"https://projects.zoho.com/restapi/portal/ + PortalID +/projects/"
+	type :GET
+	parameters:param
+	connection:"crm_project"
+];
+info "ici";
+ProjectsTemplate = zohoProjectsTemplate.getJSON("projects");
+info ProjectsTemplate;
+templateid = "";
+for each  template in ProjectsTemplate
+{
+	info "lala";
+	template_name = template.getJSON("name");
+	info template_name;
+	if(template_name.containsIgnoreCase(projectTemplate))
+	{
+		info " =";
+		templateid = template.getJSON("id_string");
+		info template;
+	}
+}
+if(!templateid.isNull())
+{
+	params.put("template_id",templateid);
+	//--------------------------
+	// project creation
+	//--------------------------
+	info "-";
+	info params;
+	info "-";
+	createProject = invokeurl
+	[
+		url :"https://projects.zoho.com/restapi/portal/ + PortalID +/projects/"
+		type :POST
+		parameters:params
+		connection:"crm_project"
+	];
+	info "create " + createProject;
+	projectID = createProject.get("projects").getJSON("id_string");
+	updateDeal = zoho.crm.updateRecord("Deals",dealID,{"Project_ID":projectID});
+	//---------------------------------
+	// associate project with the Deal
+	//---------------------------------
+	associateProjectMap = Map();
+	associateProjectMap.put("data",{{"name":nameP}});
+	associateProject = invokeurl
+	[
+		url :"https://www.zohoapis.com/crm/v2/Deals/" + dealID + "/Zoho_Projects/" + projectID
+		type :POST
+		parameters:associateProjectMap.toText()
+		connection:"crm_project"
+	];
+	info "associateProject " + associateProject;
+}
+}
