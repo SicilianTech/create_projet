@@ -1,28 +1,7 @@
 void automation.creat_project(String dealID)
 {
 dealInfo = zoho.crm.getRecordById("Deals",dealID);
-info dealInfo;
-list_quote = list();
-accountName = dealInfo.get("Account_Name").get("name");
-accountID = dealInfo.get("Account_Name").get("id");
-contact = dealInfo.getJSON("Contact_Name");
-if(!contact.isNull())
-{
-	contactID = dealInfo.getJSON("Contact_Name").getJSON("id");
-	contact_name = dealInfo.getJSON("Contact_Name").getJSON("name");
-	contact_det = zoho.crm.getRecordById("Contacts",contactID);
-	phone = contact_det.getJSON("Mobile");
-}
-deal_amount = dealInfo.get("Amount").toDecimal();
-// exemple : 10000.00
-// Récupération du % de profit brut
-profit_percentage =20;
-// exemple : 20
-profit_percentage = profit_percentage / 100;
-// Calcul du coût cible basé uniquement sur le montant du deal
-cost_budget = deal_amount - deal_amount * profit_percentage;
-cost_budget = cost_budget.round(2);
-info cost_budget;
+
 nameP = dealInfo.get("Deal_Name");
 // trouver les variables customfields
 PortalID = "NOM_PORTAIL";
@@ -33,26 +12,18 @@ GetProjectDetails = invokeurl
 	connection:"crm_project"
 ];
 info GetProjectDetails;
-
+cost_budget ="";
 params = Map();
 params.put("name",nameP);
 params.put("description",dealInfo.get("Description"));
-params.put("UDF_LONG2",dealInfo.get("Num_ro_d_affaire"));
-params.put("UDF_CHAR7",dealInfo.get("Num_ro_de_r_f_rence_de_l_estimateur"));
-params.put("UDF_CHAR6",dealInfo.get("Adresse_des_travaux"));
+/*
+exemple of custom_field
+params.put("UDF_CHAR1",dealInfo.get("exemple"));
+*/
 params.put("budget_type",1);
 params.put("hourly_budget",dealInfo.get("Nombre_d_heures"));
 params.put("budget_value",cost_budget);
 params.put("revenue_budget",dealInfo.get("Amount").toDecimal());
-params.put("UDF_CHAR1",dealInfo.get("Fiche_tech"));
-params.put("UDF_CHAR2",dealInfo.get("Couleur"));
-deal_amount = dealInfo.get("Amount").toDecimal();
-params.put("UDF_TEXT1",accountID);
-// exemple : 10000.00
-// Récupération du % de profit brut
-profit_percentage = dealInfo.get("Pourcentage_profit_brut_vis_proposition_de_Oli").toDecimal();
-// exemple : 20
-
 
 
 
